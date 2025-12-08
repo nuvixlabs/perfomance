@@ -37,17 +37,12 @@ function Dashboard({ onLogout }) {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const savedData = localStorage.getItem('deliveryData');
-    if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      setData(parsedData);
-      setFilteredData(parsedData);
-    }
-
+    // Load only small, safe data from localStorage
     const savedTarget = localStorage.getItem('targetPerformance');
     if (savedTarget) {
       setTargetPerformance(parseFloat(savedTarget));
     }
+    // Note: Large delivery data is kept in memory only (no localStorage) to avoid quota exceeded errors
   }, []);
 
   useEffect(() => {
@@ -60,7 +55,8 @@ function Dashboard({ onLogout }) {
     try {
       const sheetData = await fetchGoogleSheetData();
       setData(sheetData);
-      localStorage.setItem('deliveryData', JSON.stringify(sheetData));
+      // Don't save to localStorage to avoid quota exceeded errors
+      // Data is kept in memory during the session
       
       toast({
         title: "Google Sheets carregado!",
@@ -97,7 +93,7 @@ function Dashboard({ onLogout }) {
         const merged = mergeData(data, parsedData);
         
         setData(merged);
-        localStorage.setItem('deliveryData', JSON.stringify(merged));
+        // Don't save to localStorage to avoid quota exceeded errors
         
         toast({
           title: "Importação concluída!",
