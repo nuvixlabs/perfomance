@@ -2,7 +2,7 @@ import { useState } from "react";
 
 export default function ChatPlanilha() {
   const [messages, setMessages] = useState([
-    { sender: "bot", text: "📄 Planilha carregada! Digite 'status' ou 'situacao' para ver os agrupamentos." }
+    { sender: "bot", text: "📄 Planilha carregada! Digite 'status', 'situacao' ou 'base'." }
   ]);
   const [input, setInput] = useState("");
   const [aberto, setAberto] = useState(false);
@@ -19,7 +19,7 @@ export default function ChatPlanilha() {
   function contarValores(colIndex, data) {
     const contagem = {};
     data.slice(1).forEach(row => {
-      let valor = row[colIndex]?.trim();
+      const valor = row[colIndex]?.trim();
       if (!valor) return;
       contagem[valor] = (contagem[valor] || 0) + 1;
     });
@@ -39,54 +39,43 @@ export default function ChatPlanilha() {
 
     const colunaAZ = cabecalho.findIndex(c => c.toLowerCase().includes("status"));
     const colunaCC = cabecalho.findIndex(c => c.toLowerCase().includes("sla") || c.toLowerCase().includes("cc"));
+    const colUnidade = cabecalho.findIndex(c => c.toLowerCase().includes("sigla") && c.toLowerCase().includes("entrega"));
 
-    if (colunaAZ === -1) return "❌ Coluna AZ (Status) não encontrada.";
-    if (colunaCC === -1) return "❌ Coluna CC (Situação) não encontrada.";
+    if (msg.toLowerCase() === "status" || msg.toLowerCase() === "az")
+      return `📊 STATUS (AZ)\n${formatarLista(contarValores(colunaAZ,data))}`;
 
-    if (msg.toLowerCase() === "status" || msg.toLowerCase() === "az") {
-      const grupos = contarValores(colunaAZ, data);
-      return `📊 STATUS (AZ)\n${formatarLista(grupos)}`;
+    if (msg.toLowerCase() === "situacao" || msg.toLowerCase() === "cc")
+      return `📦 SITUAÇÃO (CC)\n${formatarLista(contarValores(colunaCC,data))}`;
+
+    if (msg.toLowerCase() === "base") {
+      const unidades = [...new Set(data.slice(1).map(r => r[colUnidade]?.trim()).filter(Boolean))];
+      return "🏢 Bases encontradas:\n\n" +
+      unidades.map((u,i)=>`${i+1} - ${u}`).join("\n") +
+      "\n\nDigite o número da base.";
     }
 
-    if (msg.toLowerCase() === "situacao" || msg.toLowerCase() === "cc") {
-      const grupos = contarValores(colunaCC, data);
-      return `📦 SITUAÇÃO (CC)\n${formatarLista(grupos)}`;
+    if (!isNaN(msg)) {
+      const unidades = [...new Set(data.slice(1).map(r => r[colUnidade]?.trim()).filter(Boolean))];
+      const base = unidades[Number(msg)-1];
+      const filtro = data.filter(r => r[colUnidade]?.trim() === base);
+      return `📍 BASE: ${base}\n\n📊 STATUS\n${formatarLista(contarValores(colunaAZ,filtro))}\n\n📦 SITUAÇÃO\n${formatarLista(contarValores(colunaCC,filtro))}`;
     }
 
-    return "Digite:\n\n🟣 'status' para agrupar coluna AZ\n🟣 'situacao' para agrupar coluna CC";
+    return "Comandos:\n• status\n• situacao\n• base";
   }
 
-  async function enviar() {
-    if (!input.trim()) return;
-
-    setMessages(prev => [...prev, { sender: "user", text: input }]);
-    const resposta = await responder(input);
-    setMessages(prev => [...prev, { sender: "bot", text: resposta }]);
+  async function enviar(){
+    if(!input.trim()) return;
+    setMessages(m=>[...m,{sender:"user",text:input}]);
+    const r = await responder(input);
+    setMessages(m=>[...m,{sender:"bot",text:r}]);
     setInput("");
   }
 
   return (
     <div>
-      {/* Botão flutuante sempre visível */}
-      <button
-        onClick={() => setAberto(!aberto)}
-        style={{
-          position: "fixed",
-          right: "20px",
-          bottom: aberto ? "480px" : "20px", // se chat aberto, empurra pra cima
-          zIndex: 10000, // sempre acima do chat
-          padding: "12px 16px",
-          borderRadius: "50px",
-          border: "none",
-          background: "#5c3bff",
-          color: "#fff",
-          cursor: "pointer",
-          fontWeight: "bold",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-          transition: "bottom 0.3s"
-        }}
-      >
-        {aberto ? "✕ Minimizar" : "💬 Chat"}
+      <button onClick={()=>setAberto(!aberto)} style={estilo.botaoAbrir}>
+        {aberto?"✕":"💬"}
       </button>
 
       {aberto && (
@@ -95,19 +84,20 @@ export default function ChatPlanilha() {
             {messages.map((m,i)=>(
               <div key={i} style={{
                 ...estilo.msg,
-                alignSelf: m.sender==="user"?"flex-end":"flex-start",
-                background: m.sender==="user"?"#c7b5ff":"#e5d8ff",
+                alignSelf:m.sender==="user"?"flex-end":"flex-start",
+                background:m.sender==="user"?"#b48aff":"#e7d4ff",
                 color:"black"
               }}>{m.text}</div>
             ))}
           </div>
 
           <div style={estilo.rodape}>
-            <input style={estilo.input}
-              placeholder="Digite status ou situacao..."
+            <input
+              style={estilo.input}
               value={input}
               onChange={e=>setInput(e.target.value)}
-              onKeyDown={e=>e.key==="Enter" && enviar()}
+              onKeyDown={e=>e.key==="Enter"&&enviar()}
+              placeholder="Digite status / situacao / base..."
             />
             <button style={estilo.btn} onClick={enviar}>➤</button>
           </div>
@@ -117,61 +107,42 @@ export default function ChatPlanilha() {
   );
 }
 
-const estilo = {
+const estilo={
+  botaoAbrir:{
+    position:"fixed",right:"20px",bottom:"20px",
+    background:"#6a0dad",color:"#fff",
+    padding:"12px 15px",borderRadius:"50%",border:"none",
+    fontSize:"18px",cursor:"pointer",fontWeight:"bold",zIndex:99999
+  },
   janela:{
-    position:"fixed",
-    right:"20px",
-    bottom:"20px",
-    width:"350px",
-    height:"450px",
-    background:"#9b6ff",
-    borderRadius:"12px",
-    display:"flex",
-    flexDirection:"column",
-    boxShadow:"0 4px 12px rgba(0,0,0,.25)",
-    zIndex:9999,
-    color:"black"
+    position:"fixed",right:"20px",bottom:"75px",
+    width:"350px",height:"450px",
+    background:"#6a0dad", // roxo
+    color:"black",
+    borderRadius:"12px",display:"flex",
+    flexDirection:"column",boxShadow:"0 0 12px rgba(0,0,0,.3)",
+    zIndex:99999
   },
   chat:{
-    flex:1,
-    overflowY:"auto",
-    padding:"12px",
-    display:"flex",
-    flexDirection:"column",
-    gap:"8px",
-    background:"#c7b5ff",
-    borderRadius:"10px"
+    flex:1,overflowY:"auto",padding:"12px",
+    display:"flex",flexDirection:"column",gap:"10px",
+    background:"#b48aff"
   },
   msg:{
-    padding:"10px 14px",
-    borderRadius:"10px",
-    maxWidth:"75%",
-    whiteSpace:"pre-line",
-    fontSize:"15px"
+    padding:"10px 14px",borderRadius:"10px",fontSize:"14px",
+    maxWidth:"80%",whiteSpace:"pre-line",color:"black"
   },
   rodape:{
-    display:"flex",
-    padding:"10px",
-    gap:"6px",
-    background:"#8a5cff",
-    borderBottomLeftRadius:"12px",
-    borderBottomRightRadius:"12px"
+    padding:"10px",display:"flex",gap:"6px",
+    background:"#8a5cff",borderRadius:"0 0 12px 12px"
   },
   input:{
-    flex:1,
-    padding:"10px",
-    borderRadius:"8px",
-    border:"none",
-    outline:"none",
-    fontSize:"14px"
+    flex:1,padding:"10px",fontSize:"14px",borderRadius:"8px",
+    border:"none",outline:"none",color:"black"
   },
   btn:{
-    padding:"10px 14px",
-    borderRadius:"8px",
-    background:"#5c3bff",
-    color:"#fff",
-    border:"none",
-    cursor:"pointer",
-    fontWeight:"bold"
+    padding:"10px 14px",borderRadius:"8px",
+    background:"#5c3bff",color:"#fff",border:"none",
+    cursor:"pointer",fontWeight:"bold"
   }
 };
