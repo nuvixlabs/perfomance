@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet';
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
 import { Toaster } from './components/ui/toaster';
+import ChatPlanilha from "./ChatPlanilha";  // ← Chat importado
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -44,12 +45,17 @@ function App() {
         <title>Sistema de Controle de Performance - Transportes Irmãos</title>
         <meta name="description" content="Sistema de gerenciamento e controle de performance de entregas com análise de SLA e status preventivo" />
       </Helmet>
+
       {!isAuthenticated ? (
         <LoginPage onLogin={handleLogin} />
       ) : (
         <Dashboard onLogout={handleLogout} />
       )}
+
       <Toaster />
+
+      {/* Chat aparece apenas quando o usuário estiver logado */}
+      {isAuthenticated && <ChatPlanilha />}
     </>
   );
 }
