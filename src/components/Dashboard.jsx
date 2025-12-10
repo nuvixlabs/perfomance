@@ -19,6 +19,7 @@ import StatusCards from './StatusCards';
 import PerformanceWidget from './PerfomanceWidget';
 import DataTable from './DataTable';
 import PerformanceMatrix from './PerfomanceMatrix';
+import PerformanceByUnit from './PerformanceByUnit';
 import { parseXLSX, calculatePerformance, filterData, generateTemplateXLSX, mergeData, exportToXLSX } from '../lib/dataUtils';
 import { fetchGoogleSheetData } from '../lib/googleSheetsUtils';
 
@@ -310,6 +311,7 @@ function Dashboard({ onLogout }) {
 
         <div className="mt-6 space-y-6">
           <PerformanceMatrix data={filteredData} />
+          <PerformanceByUnit data={filteredData} />
           <DataTable data={filteredData} />
         </div>
       </div>
