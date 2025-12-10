@@ -167,6 +167,61 @@ export const fetchGoogleSheetData = async () => {
   }
 };
 
+// Movimentação sheet (separate ID)
+const MOVIMENTACAO_SHEET_ID = '1WQsXsByhjnUxNz_mbMnjTLy4j-jXU1qdIKzJWbmMY54';
+
+export const fetchMovimentacaoSheetData = async () => {
+  try {
+    const sheetURL = `https://docs.google.com/spreadsheets/d/${MOVIMENTACAO_SHEET_ID}/export?format=csv`;
+    const response = await fetch(sheetURL);
+    if (!response.ok) throw new Error('Erro ao acessar Google Sheets (Movimentação)');
+
+    const csvText = await response.text();
+    const rows = parseCSV(csvText).filter(r => r && r.length > 0);
+    if (rows.length < 2) throw new Error('Planilha de movimentação vazia ou sem dados');
+
+    const headers = rows[0];
+    const dataRows = rows.slice(1).filter(row => row.some(cell => String(cell).trim() !== ''));
+
+    const getIndex = (aliases, fallbackIndex = -1) => {
+      const idx = findHeaderIndex(headers, Array.isArray(aliases) ? aliases : [aliases]);
+      if (idx !== -1) return idx;
+      return fallbackIndex;
+    };
+
+    const mappedData = dataRows.map(row => {
+      const getValBy = (aliases, fallbackIndex) => {
+        const idx = getIndex(aliases, fallbackIndex);
+        return idx !== -1 ? (row[idx] ?? '') : '';
+      };
+
+      return {
+        numeroRomaneio: getValBy(['Numero do romaneio', 'Numero romaneio', 'Romaneio', 'Nro Romaneio', 'Número do romaneio'], 0), // Coluna A
+        tipoRomaneio: getValBy(['Tipo de Romaneio', 'Tipo romaneio', 'Tipo'], 1), // Coluna B
+        motorista: getValBy(['Motorista', 'Nome do Motorista'], 3), // Coluna D
+        unidadeOrigem: getValBy(['Unidade Origem', 'Base Origem', 'Filial Origem'], 5), // Coluna F
+        // Coluna L - Dt. Operação (usada no filtro por mês)
+        dataGeracao: getValBy(
+          ['Dt. Operação', 'Dt Operação', 'Dt. Operacao', 'Dt Operacao', 'Data de geração', 'Data geração', 'Dt Geração', 'Data'],
+          11
+        ),
+        // Coluna P - Situação Baixa
+        situacaoBaixa: getValBy(
+          ['Situação Baixa', 'Situação da Baixa', 'Situacao da Baixa', 'Status Baixa', 'Situação', 'Situacao'],
+          15
+        ),
+        qtdeSolicitacoes: getValBy(['Qtde. Solicitações/Consolidações', 'Qtde Solicitações', 'Quantidade Solicitações'], 16), // Coluna Q
+        _raw: Object.fromEntries(headers.map((h, i) => [h, row[i]]))
+      };
+    });
+
+    return mappedData;
+  } catch (error) {
+    console.error('Erro ao fetch Movimentação Sheets:', error);
+    throw new Error(`Erro ao carregar movimentações: ${error.message}`);
+  }
+};
+
 // Alternative: Using Sheets API v4 (if you want real-time with API key)
 export const fetchGoogleSheetDataAPI = async (apiKey) => {
   try {

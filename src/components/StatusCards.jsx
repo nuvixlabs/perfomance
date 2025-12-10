@@ -72,7 +72,7 @@ function StatusCards({ data }) {
       statusValue: 'ENTREGUE NO PRAZO'
     },
     {
-      title: 'Dentro do Prazo',
+      title: 'Liberada a Vencer',
       value: dentroPrazo,
       icon: Clock,
       color: 'from-cyan-500 to-cyan-600',
@@ -80,7 +80,7 @@ function StatusCards({ data }) {
       statusValue: 'DENTRO DO PRAZO'
     },
     {
-      title: 'Atrasada',
+      title: 'Entregue Fora do Prazo',
       value: atrasada,
       icon: AlertTriangle,
       color: 'from-red-500 to-red-600',
@@ -88,7 +88,7 @@ function StatusCards({ data }) {
       statusValue: 'ATRASADA'
     },
     {
-      title: 'Vencida',
+      title: 'Liberada Vencida',
       value: vencida,
       icon: XCircle,
       color: 'from-orange-600 to-orange-700',
